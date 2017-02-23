@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright 2017 Artem Labazin <xxlabaza@gmail.com>.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -77,23 +77,9 @@ public class PropertiesResolverService {
     }
 
     private String parseUntil (String string, String until, int start) {
-        for (int index = start; index < string.length(); index++) {
-            if (string.charAt(index) != until.charAt(0)) {
-                continue;
-            }
-
-            int untilIndex = 1;
-            while (index + untilIndex < string.length() &&
-                   untilIndex < until.length() &&
-                   string.charAt(index + untilIndex) == until.charAt(untilIndex)) {
-
-                untilIndex++;
-            }
-
-            if (untilIndex >= until.length()) {
-                return string.substring(start, index);
-            }
-        }
-        return string.substring(start);
+        int index = string.indexOf(until, start);
+        return index != -1
+               ? string.substring(start, index)
+               : string.substring(start);
     }
 }
