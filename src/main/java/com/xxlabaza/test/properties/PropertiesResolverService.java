@@ -19,12 +19,38 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Utility class for resolving properties map.
+ *
  * @author Artem Labazin <xxlabaza@gmail.com>
  * @since 22.02.2017
  */
-public class PropertiesResolverService {
+public final class PropertiesResolverService {
 
-    public Map<String, String> resolve (Map<String, String> properties) {
+    /**
+     * Evaluates properties map and resolve its values.
+     * <p>
+     * It resolves map values by the following syntax:
+     * <p>
+     * {@code key1 -> hello }
+     * <p>
+     * {@code key2 -> ${key1} world}
+     * <p>
+     * will produce a new map:
+     * <p>
+     * {@code key1 -> hello }
+     * <p>
+     * {@code key2 -> hello world }
+     *
+     * @param properties properties map to resolve.
+     *
+     * @return new {@link Map} instance with resolved properties.
+     *
+     * @throws RecursionPropertyEvaluationException in case of recursion key evaluation. A simple example:
+     *                                              {@code key1 -> ${key1} }
+     * @throws UnknownPropertyKeyException          in case of unknown property key for evaluation.
+     */
+    public static Map<String, String> resolve (Map<String, String> properties)
+            throws UnknownPropertyKeyException, RecursionPropertyEvaluationException {
         Map<String, String> result = new HashMap<>(properties.size(), 1.F);
         for (String key : properties.keySet()) {
             if (result.containsKey(key)) {
@@ -37,11 +63,13 @@ public class PropertiesResolverService {
         return result;
     }
 
-    private String evaluate (String key, Map<String, String> original, Map<String, String> evaluated) {
+    private static String evaluate (String key, Map<String, String> original, Map<String, String> evaluated)
+            throws UnknownPropertyKeyException, RecursionPropertyEvaluationException {
         String value = original.get(key);
         if (value == null) {
-            throw new IllegalArgumentException();
+            throw new UnknownPropertyKeyException();
         }
+        evaluated.put(key, null);
 
         StringBuilder stringBuilder = new StringBuilder();
         int index = 0;
@@ -57,9 +85,6 @@ public class PropertiesResolverService {
             }
 
             token = parseUntil(value, "}", index);
-            if (token.equals(key)) {
-                throw new IllegalArgumentException();
-            }
 
             index += token.length();
             index += "}".length();
@@ -67,6 +92,10 @@ public class PropertiesResolverService {
             String evaluatedToken = evaluated.containsKey(token)
                                     ? evaluated.get(token)
                                     : evaluate(token, original, evaluated);
+
+            if (evaluatedToken == null) {
+                throw new RecursionPropertyEvaluationException();
+            }
 
             stringBuilder.append(evaluatedToken);
         } while (index < value.length());
@@ -76,10 +105,13 @@ public class PropertiesResolverService {
         return result;
     }
 
-    private String parseUntil (String string, String until, int start) {
+    private static String parseUntil (String string, String until, int start) {
         int index = string.indexOf(until, start);
         return index != -1
                ? string.substring(start, index)
                : string.substring(start);
+    }
+
+    private PropertiesResolverService () {
     }
 }

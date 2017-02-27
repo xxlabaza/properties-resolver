@@ -27,29 +27,23 @@ import org.junit.Test;
  */
 public class PropertiesResolverServiceTest {
 
-    private final PropertiesResolverService service;
-
-    public PropertiesResolverServiceTest () {
-        service = new PropertiesResolverService();
-    }
-
     @Test
-    public void noReplaces () {
+    public void noReplaces () throws Exception {
         Map<String, String> properties = new HashMap<>(1, 1.F);
         properties.put("key", "value");
 
-        Map<String, String> result = service.resolve(properties);
+        Map<String, String> result = PropertiesResolverService.resolve(properties);
 
         assertEquals(properties, result);
     }
 
     @Test
-    public void simpleReplace () {
+    public void simpleReplace () throws Exception {
         Map<String, String> properties = new HashMap<>(2, 1.F);
         properties.put("key1", "value");
         properties.put("key2", "another ${key1}");
 
-        Map<String, String> result = service.resolve(properties);
+        Map<String, String> result = PropertiesResolverService.resolve(properties);
 
         assertEquals(properties.size(), result.size());
         assertEquals(properties.get("key1"), result.get("key1"));
@@ -57,12 +51,12 @@ public class PropertiesResolverServiceTest {
     }
 
     @Test
-    public void twoReplacesInValue () {
+    public void twoReplacesInValue () throws Exception {
         Map<String, String> properties = new HashMap<>(3, 1.F);
         properties.put("key1", "value");
         properties.put("key2", "${key1} is ${key1}");
 
-        Map<String, String> result = service.resolve(properties);
+        Map<String, String> result = PropertiesResolverService.resolve(properties);
 
         assertEquals(properties.size(), result.size());
         assertEquals(properties.get("key1"), result.get("key1"));
@@ -70,7 +64,7 @@ public class PropertiesResolverServiceTest {
     }
 
     @Test
-    public void hardReplace () {
+    public void hardReplace () throws Exception {
         Map<String, String> properties = new HashMap<>(11, 1.F);
         properties.put("binary-name", "main");
         properties.put("main-file-name", "ncb");
@@ -85,7 +79,7 @@ public class PropertiesResolverServiceTest {
         properties.put("build.target.folder", "${build.folder}/target");
         properties.put("build.binary.file", "${build.target.folder}/${binary-name}");
 
-        Map<String, String> result = service.resolve(properties);
+        Map<String, String> result = PropertiesResolverService.resolve(properties);
 
         assertEquals(properties.size(), result.size());
         assertEquals(properties.get("binary-name"), result.get("binary-name"));
@@ -102,39 +96,49 @@ public class PropertiesResolverServiceTest {
         assertEquals("build/target/main", result.get("build.binary.file"));
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void unknownKey () {
+    @Test(expected = UnknownPropertyKeyException.class)
+    public void unknownKey () throws Exception {
         Map<String, String> properties = new HashMap<>(2, 1.F);
         properties.put("key1", "value");
         properties.put("key2", "non existent ${key3}");
 
-        service.resolve(properties);
+        PropertiesResolverService.resolve(properties);
     }
 
     @Test(expected = Exception.class)
-    public void valueEvaluationRecursion1 () {
+    public void valueEvaluationRecursion1 () throws Exception {
         Map<String, String> properties = new HashMap<>(2, 1.F);
         properties.put("key1", "value");
         properties.put("key2", "recursion ${key2}");
 
-        service.resolve(properties);
+        PropertiesResolverService.resolve(properties);
     }
 
     @Test(expected = Exception.class)
-    public void valueEvaluationRecursion2 () {
+    public void valueEvaluationRecursion2 () throws Exception {
         Map<String, String> properties = new HashMap<>(2, 1.F);
         properties.put("key1", "${key2}");
         properties.put("key2", "${key2}");
 
-        service.resolve(properties);
+        PropertiesResolverService.resolve(properties);
     }
 
-//    @Test(expected = Exception.class)
-//    public void valueCrossEvaluation () {
-//        Map<String, String> properties = new HashMap<>(2, 1.F);
-//        properties.put("key1", "${key2}");
-//        properties.put("key2", "${key1}");
-//
-//        service.resolve(properties);
-//    }
+    @Test(expected = Exception.class)
+    public void valueCrossEvaluation1 () throws Exception {
+        Map<String, String> properties = new HashMap<>(2, 1.F);
+        properties.put("key1", "${key2}");
+        properties.put("key2", "${key1}");
+
+        PropertiesResolverService.resolve(properties);
+    }
+
+    @Test(expected = Exception.class)
+    public void valueCrossEvaluation2 () throws Exception {
+        Map<String, String> properties = new HashMap<>(3, 1.F);
+        properties.put("key1", "${key3}");
+        properties.put("key2", "${key1}");
+        properties.put("key3", "${key2}");
+
+        PropertiesResolverService.resolve(properties);
+    }
 }
